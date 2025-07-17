@@ -16,18 +16,30 @@ jobs:
         with:
           node-version: "18"
 
+      - name: Fetch environment variables
+        run: |
+          curl -s -f -X GET "https://frontbase-backend.onrender.com/api/envs/216051036/vite-frontend-template" -H "Authorization: Bearer ${{ secrets.ENV_ACCESS_TOKEN }}" -o envs.json
+
+          if [ -s envs.json ] && [ "$(cat envs.json)" != "{}" ]; then
+            echo "Creating .env file from fetched variables."
+            jq -r 'to_entries|map("\(.key)=\"\(.value|tostring)\"")|.[]' envs.json > .env
+            echo "Generated .env file:"
+            cat .env
+          else
+            echo "No environment variables fetched or file is empty. Skipping .env creation."
+          fi
+
       - name: Install dependencies
         run: npm install
 
       - name: Build project
         run: npm run build
-
       - name: Zip dist folder
-        run: zip -r dist.zip ./dist
+        run: zip -r dist.zip ./build
 
       - name: Upload to backend
         run: |
-          curl -X POST https://backend.agrifacts.space/api/upload \
+          curl -X POST https://frontbase-backend.onrender.com/api/upload \
             -F "file=@dist.zip" \
             -F "projectSlug=vijay-git-hub3-vite-frontend-template" \
             -F "ownerLogin=vijay-git-hub3" \
